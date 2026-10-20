@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Revelación · Selección de la Cava</title>
+<style>
+  :root{ --bg-deep:#0f0c0a; --bg-vignette:#1c1611; --gold:#c9a15a; --gold-soft:#a9884f; --cream:#efe6d6; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; background:radial-gradient(ellipse at center,var(--bg-vignette) 0%,var(--bg-deep) 70%);
+    background-color:var(--bg-deep); font-family:'Georgia','Iowan Old Style',serif; color:var(--cream);
+  }
+  .wrap{ min-height:100vh; min-height:100svh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:20px 12px; }
+  .topbar{ width:min(88vw, 760px); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .back-btn{ display:inline-flex; align-items:center; gap:8px; color:var(--gold); text-decoration:none; font-size:13px; letter-spacing:.06em; padding:8px 16px 8px 10px; border-radius:999px; border:1px solid rgba(201,161,90,.5); background:rgba(201,161,90,.06); transition:background .2s ease; white-space:nowrap; }
+  .back-btn:hover{ background:rgba(201,161,90,.16); }
+  .back-btn svg{ width:16px; height:16px; flex:none; }
+  .topbar .spacer{ width:150px; }
+  @media(max-width:640px){ .topbar{ justify-content:center; } .topbar .brandline, .topbar .spacer{ display:none; } }
+  .brandline{ text-align:center; letter-spacing:.35em; text-transform:uppercase; font-size:11px; color:var(--gold-soft); opacity:.85; }
+  .stage{
+    perspective:1400px; -webkit-perspective:1400px;
+    width:min(88vw, calc((100svh - 224px) * 0.7077), 760px);
+    aspect-ratio:2198 / 3107; position:relative; flex:0 0 auto;
+    touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
+  .book{ position:absolute; inset:0; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; }
+  .page{ position:absolute; inset:0; transform-origin:left center; transform-style:preserve-3d; -webkit-transform-style:preserve-3d; transition:transform .9s cubic-bezier(.4,.1,.2,1); }
+  .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:4px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.55),0 2px 0 rgba(201,161,90,.25); }
+  .face.back{ transform:rotateY(180deg); background:#120e0b; }
+  .face img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; }
+  .face.back img{ filter:brightness(.85) saturate(.95); }
+  .face.back .wm-overlay{ position:absolute; inset:0; background:linear-gradient(180deg,rgba(15,12,10,.3),rgba(15,12,10,.6)); }
+  .face.back .wm-label{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:15px; letter-spacing:.35em; text-transform:uppercase; text-shadow:0 2px 12px rgba(0,0,0,.7); }
+  .face.back.is-logo{ background:radial-gradient(ellipse at center,#241d17 0%,#120e0b 75%); display:flex; align-items:center; justify-content:center; }
+  .face.back.is-logo img{ width:72%; height:auto; object-fit:contain; filter:none; border-radius:6px; }
+  .page.flipped{ transform:rotateY(-178deg); }
+
+  .controls,.hint,.brandline{ position:relative; z-index:20; }
+  .controls{ display:flex; align-items:center; gap:22px; }
+  .navbtn{ background:rgba(201,161,90,.10); border:1.5px solid var(--gold); color:var(--gold); width:44px; height:44px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; touch-action:manipulation; }
+  .navbtn:disabled{ opacity:.4; cursor:default; }
+  .counter{ font-size:13px; letter-spacing:.08em; opacity:.85; min-width:100px; text-align:center; }
+  .hint{ font-size:14px; color:var(--gold); text-align:center; max-width:88vw; line-height:1.45; }
+
+  /* Capa de zoom: copia plana y nitida de la pagina actual */
+  .zoomLayer{ position:fixed; inset:0; z-index:1000; pointer-events:none; visibility:hidden; }
+  .zoomLayer.on{ visibility:visible; }
+  .zoomShade{ position:absolute; inset:0; background:rgba(6,4,3,.88); opacity:0; transition:opacity .25s ease; }
+  .zoomImg{ position:absolute; transform-origin:0 0; will-change:transform; border-radius:4px; box-shadow:0 20px 60px rgba(0,0,0,.6); -webkit-user-drag:none; }
+  .zoomImg.anim{ transition:transform .28s cubic-bezier(.2,.8,.2,1); }
+  .zoomClose{ position:absolute; top:max(14px, env(safe-area-inset-top)); right:14px; width:42px; height:42px; border-radius:50%; border:1.5px solid var(--gold); background:rgba(15,12,10,.75); color:var(--gold); font-size:18px; display:none; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; }
+  .zoomLayer.sticky .zoomClose{ display:flex; }
+  .zoomLayer.sticky{ pointer-events:auto; touch-action:none; cursor:grab; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="back-btn" href="https://www.revelacion.mx/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Volver al inicio</a>
+      <div class="brandline">Revelación · Experiencia de Tequila</div>
+      <span class="spacer" aria-hidden="true"></span>
+    </div>
+    <div class="stage" id="stage"><div class="book" id="book"></div></div>
+    <div class="controls">
+      <button class="navbtn" id="prevBtn" aria-label="Página anterior">&#10094;</button>
+      <div class="counter" id="counter">Página 1 de 10</div>
+      <button class="navbtn" id="nextBtn" aria-label="Página siguiente">&#10095;</button>
+    </div>
+    <div class="hint" id="hint">Pellizca la página con dos dedos para acercar. Suelta y regresa.<br>Doble toque para dejarla en grande.</div>
+  </div>
+
+  <div class="zoomLayer" id="zoomLayer">
+    <div class="zoomShade" id="zoomShade"></div>
+    <img class="zoomImg" id="zoomImg" alt="">
+    <button class="zoomClose" id="zoomClose" aria-label="Cerrar">&#10005;</button>
+  </div>
+
+<script>
+(function(){
+  const pageImages = ["page-0","page-1","page-2","page-3","page-4","page-5","page-6","page-7","page-8","page-9"].map(n=>"./images/"+n+".jpg?v=2");
+  const backImages = ["back-0","back-1","back-2","back-3","back-4","back-5","back-6","back-7","back-7","back-8"].map(n=>"./images/"+n+".jpg?v=2");
+  const total = pageImages.length;
+  const $ = id => document.getElementById(id);
+  const stage=$('stage'), book=$('book'), counter=$('counter'), prevBtn=$('prevBtn'), nextBtn=$('nextBtn');
+  const layer=$('zoomLayer'), shade=$('zoomShade'), zimg=$('zoomImg'), zclose=$('zoomClose');
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+  if(!isTouch) $('hint').innerHTML = 'Doble clic sobre la página para verla en grande.<br>Arrastra para moverte, doble clic o ✕ para regresar.';
+
+  /* ---------- Libro ---------- */
+  const pageEls = pageImages.map((src,i)=>{
+    const div=document.createElement('div'); div.className='page';
+    const front=document.createElement('div'); front.className='face front';
+    const img=document.createElement('img'); img.src=src; img.alt='Página '+(i+1); img.draggable=false; front.appendChild(img);
+    const isLogo=i===total-1;
+    const back=document.createElement('div'); back.className='face back'+(isLogo?' is-logo':'');
+    const b=document.createElement('img'); b.src=backImages[i]; b.alt=''; b.draggable=false; back.appendChild(b);
+    if(!isLogo){ const o=document.createElement('div'); o.className='wm-overlay'; back.appendChild(o);
+      const l=document.createElement('div'); l.className='wm-label'; l.textContent='Revelación'; back.appendChild(l); }
+    div.appendChild(front); div.appendChild(back); book.appendChild(div); return div;
+  });
+  let current=0;
+  function updateZ(){ pageEls.forEach((p,i)=>{ p.style.zIndex = i<current ? i : total-i; }); }
+  function updateUI(){ const end=current===total;
+    counter.textContent = end ? 'Fin del catálogo' : 'Página '+(current+1)+' de '+total;
+    prevBtn.disabled=current===0; nextBtn.disabled=end; }
+  function next(){ if(current<total && !zoomOn){ pageEls[current].classList.add('flipped'); current++; updateZ(); updateUI(); } }
+  function prev(){ if(current>0 && !zoomOn){ current--; pageEls[current].classList.remove('flipped'); updateZ(); updateUI(); } }
+  prevBtn.addEventListener('click',prev); nextBtn.addEventListener('click',next);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape' && zoomOn){ closeZoom(); return; }
+    if(e.key==='ArrowRight') next(); if(e.key==='ArrowLeft') prev(); });
+  updateZ(); updateUI();
+  // precarga para que el zoom sea instantaneo
+  pageImages.forEach(s=>{ const i=new Image(); i.src=s; });
+
+  /* ---------- Zoom ---------- */
+  const MAX=4, STICKY=2.5;
+  let zoomOn=false, sticky=false;
+  let rect=null;            // posicion de la pagina en pantalla
+  let s=1, tx=0, ty=0;      // transformacion actual (origen arriba-izq de la pagina)
+  let s0=1, tx0=0, ty0=0, m0=null, d0=0;  // base del gesto
+  const pts=new Map();      // dedos activos
+
+  function apply(anim){ zimg.classList.toggle('anim',!!anim);
+    zimg.style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')';
+    shade.style.opacity = Math.min(1,(s-1)/0.6); }
+  function canZoom(){ return current<total; }
+  function openZoom(){
+    rect=stage.getBoundingClientRect();
+    zimg.src=pageImages[current];
+    Object.assign(zimg.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});
+    s=1; tx=0; ty=0; apply(false);
+    layer.classList.add('on'); zoomOn=true;
+  }
+  function closeZoom(){
+    sticky=false; layer.classList.remove('sticky');
+    s=1; tx=0; ty=0; apply(true);
+    setTimeout(()=>{ if(!sticky && pts.size===0){ layer.classList.remove('on'); zoomOn=false; } },290);
+  }
+  function clamp(){
+    // no dejar que la pagina se salga del todo de la pantalla
+    const w=rect.width*s, h=rect.height*s, vw=innerWidth, vh=innerHeight;
+    const minX=Math.min(0, vw-rect.left-w) - 0, maxX=Math.max(0, -rect.left);
+    const minY=Math.min(0, vh-rect.top-h), maxY=Math.max(0, -rect.top);
+    if(s>1.01){ tx=Math.min(maxX,Math.max(minX,tx)); ty=Math.min(maxY,Math.max(minY,ty)); }
+  }
+  function mid(){ const a=[...pts.values()]; if(a.length===1) return {x:a[0].x,y:a[0].y};
+    return {x:(a[0].x+a[1].x)/2, y:(a[0].y+a[1].y)/2}; }
+  function dist(){ const a=[...pts.values()]; if(a.length<2) return 0; return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y); }
+  function rebase(){ s0=s; tx0=tx; ty0=ty; m0=mid(); d0=dist(); }
+  function zoomAt(x,y,target){ // acercar con animacion alrededor de un punto
+    const px=(x-rect.left-tx)/s, py=(y-rect.top-ty)/s;
+    s=target; tx=x-rect.left-px*s; ty=y-rect.top-py*s; clamp(); apply(true); }
+
+  // doble toque / doble clic
+  let lastTap=0, lastTapX=0, lastTapY=0, downAt=0, downX=0, downY=0, moved=false, swipeStart=null;
+
+  function onDown(e){
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    const fromLayer = e.currentTarget===layer;
+    if(e.target===zclose) return;
+    e.preventDefault();
+    try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){}
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){ downAt=Date.now(); downX=e.clientX; downY=e.clientY; moved=false; swipeStart={x:e.clientX,y:e.clientY}; }
+    if(pts.size===2 && canZoom() && !zoomOn){ openZoom(); }
+    if(zoomOn) rebase();
+  }
+  function onMove(e){
+    if(!pts.has(e.pointerId)) return;
+    e.preventDefault();
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(Math.hypot(e.clientX-downX,e.clientY-downY)>10) moved=true;
+    if(!zoomOn) return;
+    const m=mid();
+    if(pts.size>=2 && d0>0){
+      let ns=Math.max(0.85, Math.min(MAX, s0*dist()/d0));
+      tx = m.x-rect.left - (m0.x-rect.left-tx0)*(ns/s0);
+      ty = m.y-rect.top  - (m0.y-rect.top -ty0)*(ns/s0);
+      s=ns;
+    } else if(pts.size===1 && (sticky || s>1)){
+      tx=tx0+(m.x-m0.x); ty=ty0+(m.y-m0.y); clamp();
+    }
+    apply(false);
+  }
+  function onUp(e){
+    if(!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if(pts.size>0){ if(zoomOn) rebase(); return; }
+    const now=Date.now();
+    const isTap = !moved && (now-downAt)<300;
+    // gesto de swipe para pasar hoja (solo sin zoom)
+    if(!zoomOn && swipeStart && moved){
+      const dx=e.clientX-swipeStart.x, dy=e.clientY-swipeStart.y;
+      if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.3){ dx<0 ? next() : prev(); }
+    }
+    if(isTap){
+      if(now-lastTap<320 && Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<40){
+        lastTap=0;
+        if(sticky){ closeZoom(); }
+        else if(canZoom()){ if(!zoomOn) openZoom(); sticky=true; layer.classList.add('sticky'); zoomAt(e.clientX,e.clientY,STICKY); }
+        return;
+      }
+      lastTap=now; lastTapX=e.clientX; lastTapY=e.clientY;
+    }
+    if(zoomOn && !sticky){ closeZoom(); }   // soltaste: regresa
+    else if(sticky && s<1.05){ closeZoom(); }
+  }
+  [stage,layer].forEach(el=>{
+    el.addEventListener('pointerdown',onDown);
+    el.addEventListener('pointermove',onMove);
+    el.addEventListener('pointerup',onUp);
+    el.addEventListener('pointercancel',onUp);
+  });
+  zclose.addEventListener('click',e=>{ e.stopPropagation(); closeZoom(); });
+  // iOS: bloquear el zoom nativo del navegador sobre el libro
+  ['gesturestart','gesturechange','gestureend'].forEach(t=>{
+    stage.addEventListener(t,e=>e.preventDefault(),{passive:false});
+    layer.addEventListener(t,e=>e.preventDefault(),{passive:false});
+  });
+  stage.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+  stage.addEventListener('contextmenu',e=>e.preventDefault());
+  addEventListener('resize',()=>{ if(zoomOn) closeZoom(); });
+})();
+</script>
+</body>
+</html>
